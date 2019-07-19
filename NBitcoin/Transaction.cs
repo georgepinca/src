@@ -20,8 +20,7 @@ namespace NBitcoin
         }
         private uint256 hash = uint256.Zero;
         private uint n;
-
-
+        
         public uint256 Hash
         {
             get
@@ -109,8 +108,7 @@ namespace NBitcoin
             stream.ReadWrite(ref this.hash);
             stream.ReadWrite(ref this.n);
         }
-
-
+        
         private void SetNull()
         {
             this.hash = uint256.Zero;
@@ -164,6 +162,7 @@ namespace NBitcoin
             return this.Hash + "-" + this.N;
         }
     }
+
     public class ObjPoint : IBitcoinSerializable
     {
         public bool IsNull
@@ -265,7 +264,6 @@ namespace NBitcoin
             stream.ReadWrite(ref this.n);
         }
 
-
         private void SetNull()
         {
             this.hash = uint256.Zero;
@@ -276,6 +274,7 @@ namespace NBitcoin
         {
             return (a.hash < b.hash || (a.hash == b.hash && a.n < b.n));
         }
+
         public static bool operator >(ObjPoint a, ObjPoint b)
         {
             return (a.hash > b.hash || (a.hash == b.hash && a.n > b.n));
@@ -1781,16 +1780,6 @@ namespace NBitcoin
         {
             this.vout.Add(@out);
             return @out;
-        }
-
-        public TxObj AddObject(Money money, IDestination destination)
-        {
-            return AddObject(new TxObj(money, destination));
-        }
-
-        public TxObj AddObject(Money money, Script scriptPubKey)
-        {
-            return AddObject(new TxObj(money, scriptPubKey));
         }
 
         public TxObj AddObject(TxObj @obj)

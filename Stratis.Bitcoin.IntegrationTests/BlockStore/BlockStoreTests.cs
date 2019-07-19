@@ -47,7 +47,7 @@ namespace Stratis.Bitcoin.IntegrationTests.BlockStore
                     block.Transactions[1].AddInput(new TxIn(Script.Empty));
                     block.Transactions[1].AddOutput(Money.COIN + i * 2 + 1, Script.Empty);
 
-                    block.Transactions[2].AddObject(Money.COIN + i * 2 + 1, Script.Empty);
+                    block.Transactions[2].AddObject(new TxObj(Money.COIN + i * 2 + 1, Script.Empty));
 
 
                     block.UpdateMerkleRoot();
