@@ -1,7 +1,0 @@
-[
-  {
-    "loopback": "::ffff:127.0.0.1",
-    "endpoint": "::ffff:127.0.0.1|11912",
-    "connectionAttempts": 0
-  }
-]
