@@ -40,10 +40,16 @@ namespace Stratis.Bitcoin.IntegrationTests.BlockStore
                     Block block = this.network.CreateBlock();
                     block.AddTransaction(this.network.CreateTransaction());
                     block.AddTransaction(this.network.CreateTransaction());
+                    block.AddTransaction(this.network.CreateTransaction());
+
                     block.Transactions[0].AddInput(new TxIn(Script.Empty));
                     block.Transactions[0].AddOutput(Money.COIN + i * 2, Script.Empty);
                     block.Transactions[1].AddInput(new TxIn(Script.Empty));
                     block.Transactions[1].AddOutput(Money.COIN + i * 2 + 1, Script.Empty);
+
+                    block.Transactions[2].AddObject(Money.COIN + i * 2 + 1, Script.Empty);
+
+
                     block.UpdateMerkleRoot();
                     block.Header.HashPrevBlock = blocks.Any() ? blocks.Last().GetHash() : this.network.GenesisHash;
                     blocks.Add(block);

@@ -1139,7 +1139,7 @@ namespace NBitcoin
 
         public IEnumerable<IndexedTxObj> AsIndexedOutputs()
         {
-            // We want i as the index of TxObj in Outputs[], not index in enumerable after where filter
+            // We want i as the index of TxObj in Objputs[], not index in enumerable after where filter
             return this.Select((r, i) => new IndexedTxObj()
             {
                 TxObj = r,
@@ -1488,12 +1488,14 @@ namespace NBitcoin
 
         private TxInList vin;
         private TxOutList vout;
+        private TxObjList vobj;
         private LockTime nLockTime;
 
         public Transaction()
         {
             this.vin = new TxInList(this);
             this.vout = new TxOutList(this);
+            this.vobj = new TxObjList(this);
         }
 
         public Money TotalOut
@@ -1780,6 +1782,23 @@ namespace NBitcoin
             this.vout.Add(@out);
             return @out;
         }
+
+        public TxObj AddObject(Money money, IDestination destination)
+        {
+            return AddObject(new TxObj(money, destination));
+        }
+
+        public TxObj AddObject(Money money, Script scriptPubKey)
+        {
+            return AddObject(new TxObj(money, scriptPubKey));
+        }
+
+        public TxObj AddObject(TxObj @obj)
+        {
+            this.vobj.Add(@obj);
+            return @obj;
+        }
+
         public TxIn AddInput(TxIn @in)
         {
             this.vin.Add(@in);
