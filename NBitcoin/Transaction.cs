@@ -51,7 +51,7 @@ namespace NBitcoin
             if (str == null)
                 throw new ArgumentNullException("str");
             string[] splitted = str.Split('-');
-            if(splitted.Length != 2)
+            if (splitted.Length != 2)
                 return false;
 
             uint256 hash;
@@ -128,11 +128,11 @@ namespace NBitcoin
 
         public static bool operator ==(OutPoint a, OutPoint b)
         {
-            if(ReferenceEquals(a, null))
+            if (ReferenceEquals(a, null))
             {
                 return ReferenceEquals(b, null);
             }
-            if(ReferenceEquals(b, null))
+            if (ReferenceEquals(b, null))
             {
                 return false;
             }
@@ -146,7 +146,7 @@ namespace NBitcoin
         public override bool Equals(object obj)
         {
             var item = obj as OutPoint;
-            if(ReferenceEquals(null, item))
+            if (ReferenceEquals(null, item))
                 return false;
             return item == this;
         }
@@ -164,7 +164,161 @@ namespace NBitcoin
             return this.Hash + "-" + this.N;
         }
     }
+    public class ObjPoint : IBitcoinSerializable
+    {
+        public bool IsNull
+        {
+            get
+            {
+                return (this.hash == uint256.Zero && this.n == uint.MaxValue);
+            }
+        }
+        private uint256 hash = uint256.Zero;
+        private uint n;
 
+
+        public uint256 Hash
+        {
+            get
+            {
+                return this.hash;
+            }
+            set
+            {
+                this.hash = value;
+            }
+        }
+        public uint N
+        {
+            get
+            {
+                return this.n;
+            }
+            set
+            {
+                this.n = value;
+            }
+        }
+
+        public static bool TryParse(string str, out ObjPoint result)
+        {
+            result = null;
+            if (str == null)
+                throw new ArgumentNullException("str");
+            string[] splitted = str.Split('-');
+            if (splitted.Length != 2)
+                return false;
+
+            uint256 hash;
+            if (!uint256.TryParse(splitted[0], out hash))
+                return false;
+
+            uint index;
+            if (!uint.TryParse(splitted[1], out index))
+                return false;
+            result = new ObjPoint(hash, index);
+            return true;
+        }
+
+        public static ObjPoint Parse(string str)
+        {
+            ObjPoint result;
+            if (TryParse(str, out result))
+                return result;
+            throw new FormatException("The format of the ObjPoint is incorrect");
+        }
+
+        public ObjPoint()
+        {
+            SetNull();
+        }
+        public ObjPoint(uint256 hashIn, uint nIn)
+        {
+            this.hash = hashIn;
+            this.n = nIn;
+        }
+        public ObjPoint(uint256 hashIn, int nIn)
+        {
+            this.hash = hashIn;
+            this.n = nIn == -1 ? this.n = uint.MaxValue : (uint)nIn;
+        }
+
+        public ObjPoint(Transaction tx, uint i)
+            : this(tx.GetHash(), i)
+        {
+        }
+
+        public ObjPoint(Transaction tx, int i)
+            : this(tx.GetHash(), i)
+        {
+        }
+
+        public ObjPoint(ObjPoint objPoint)
+        {
+            this.FromBytes(objPoint.ToBytes());
+        }
+        //IMPLEMENT_SERIALIZE( READWRITE(FLATDATA(*this)); )
+
+        public void ReadWrite(BitcoinStream stream)
+        {
+            stream.ReadWrite(ref this.hash);
+            stream.ReadWrite(ref this.n);
+        }
+
+
+        private void SetNull()
+        {
+            this.hash = uint256.Zero;
+            this.n = uint.MaxValue;
+        }
+
+        public static bool operator <(ObjPoint a, ObjPoint b)
+        {
+            return (a.hash < b.hash || (a.hash == b.hash && a.n < b.n));
+        }
+        public static bool operator >(ObjPoint a, ObjPoint b)
+        {
+            return (a.hash > b.hash || (a.hash == b.hash && a.n > b.n));
+        }
+
+        public static bool operator ==(ObjPoint a, ObjPoint b)
+        {
+            if (ReferenceEquals(a, null))
+            {
+                return ReferenceEquals(b, null);
+            }
+            if (ReferenceEquals(b, null))
+            {
+                return false;
+            }
+            return (a.hash == b.hash && a.n == b.n);
+        }
+
+        public static bool operator !=(ObjPoint a, ObjPoint b)
+        {
+            return !(a == b);
+        }
+        public override bool Equals(object obj)
+        {
+            var item = obj as ObjPoint;
+            if (ReferenceEquals(null, item))
+                return false;
+            return item == this;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return 17 + this.hash.GetHashCode() * 31 + this.n.GetHashCode() * 31 * 31;
+            }
+        }
+
+        public override string ToString()
+        {
+            return this.Hash + "-" + this.N;
+        }
+    }
 
     public class TxIn : IBitcoinSerializable
     {
@@ -548,9 +702,7 @@ namespace NBitcoin
 
         #endregion
     }
-
-
-
+       
     public class TxOut : IBitcoinSerializable, IDestination
     {
         private Script publicKey = Script.Empty;
@@ -964,6 +1116,7 @@ namespace NBitcoin
             }
         }
     }
+
     public class TxObjList : UnsignedList<TxObj>
     {
         public TxObjList()
@@ -1000,7 +1153,7 @@ namespace NBitcoin
             uint256 txId = this.Transaction.GetHash();
             for (int i = 0; i < this.Count; i++)
             {
-                yield return new Coin(new OutPoint(txId, i), this[i]);
+                yield return new Coin(new ObjPoint(txId, i), this[i]);
             }
         }
     }

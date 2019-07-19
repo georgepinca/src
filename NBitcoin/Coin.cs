@@ -388,10 +388,17 @@ namespace NBitcoin
         {
 
         }
+
         public Coin(OutPoint fromOutpoint, TxOut fromTxOut)
         {
             this.Outpoint = fromOutpoint;
             this.TxOut = fromTxOut;
+        }
+
+        public Coin(ObjPoint fromOutpoint, TxObj fromTxOut)
+        {
+            this.Objpoint = fromOutpoint;
+            this.TxObj = fromTxOut;
         }
 
         public Coin(Transaction fromTx, uint fromOutputIndex)
@@ -412,10 +419,17 @@ namespace NBitcoin
             this.Outpoint = new OutPoint(fromTx, outputIndex);
             this.TxOut = fromOutput;
         }
+
         public Coin(IndexedTxOut txOut)
         {
             this.Outpoint = new OutPoint(txOut.Transaction.GetHash(), txOut.N);
             this.TxOut = txOut.TxOut;
+        }
+
+        public Coin(IndexedTxObj txOut)
+        {
+            this.Objpoint = new ObjPoint(txOut.Transaction.GetHash(), txOut.N);
+            this.TxObj = txOut.TxObj;
         }
 
         public Coin(uint256 fromTxHash, uint fromOutputIndex, Money amount, Script scriptPubKey)
@@ -476,7 +490,20 @@ namespace NBitcoin
             get;
             set;
         }
+
         public TxOut TxOut
+        {
+            get;
+            set;
+        }
+
+        public ObjPoint Objpoint
+        {
+            get;
+            set;
+        }
+
+        public TxObj TxObj
         {
             get;
             set;
