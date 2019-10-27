@@ -319,6 +319,140 @@ namespace NBitcoin
         }
     }
 
+
+    public class TxInfo : IBitcoinSerializable
+    {
+        public TxInfo()
+        {
+
+        }
+        public TxInfo(Script scriptSig)
+        {
+            this.scriptSig = scriptSig;
+        }
+        public TxInfo(ObjPoint prevobj, Script scriptSig)
+        {
+            this.prevobj = prevobj;
+            this.scriptSig = scriptSig;
+        }
+        public TxInfo(ObjPoint prevobj)
+        {
+            this.prevobj = prevobj;
+        }
+
+        private ObjPoint prevobj = new ObjPoint();
+        private Script scriptSig = Script.Empty;
+        private uint nSequence = uint.MaxValue;
+
+        public Sequence Sequence
+        {
+            get
+            {
+                return this.nSequence;
+            }
+            set
+            {
+                this.nSequence = value.Value;
+            }
+        }
+        public ObjPoint PrevObj
+        {
+            get
+            {
+                return this.prevobj;
+            }
+            set
+            {
+                this.prevobj = value;
+            }
+        }
+
+
+        public Script ScriptSig
+        {
+            get
+            {
+                return this.scriptSig;
+            }
+            set
+            {
+                this.scriptSig = value;
+            }
+        }
+
+
+        /// <summary>
+        /// Try to get the expected scriptPubKey of this TxInf based on its scriptSig and witScript.
+        /// </summary>
+        /// <returns>Null if could not infer the scriptPubKey, else, the expected scriptPubKey</returns>
+        public IDestination GetSigner(Network network)
+        {
+            return this.scriptSig.GetSigner(network) ?? this.witScript.GetSigner(network);
+        }
+
+        private WitScript witScript = WitScript.Empty;
+
+        /// <summary>
+        /// The witness script (Witness script is not serialized and deserialized at the TxInf level, but at the Transaction level)
+        /// </summary>
+        public WitScript WitScript
+        {
+            get
+            {
+                return this.witScript;
+            }
+            set
+            {
+                this.witScript = value;
+            }
+        }
+
+        #region IBitcoinSerializable Members
+
+        public void ReadWrite(BitcoinStream stream)
+        {
+            stream.ReadWrite(ref this.prevobj);
+            stream.ReadWrite(ref this.scriptSig);
+            stream.ReadWrite(ref this.nSequence);
+        }
+
+        #endregion
+
+        public bool IsFrom(Network network, PubKey pubKey)
+        {
+            PayToPubkeyHashScriptSigParameters result = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(network, this.ScriptSig);
+            return result != null && result.PublicKey == pubKey;
+        }
+
+        public bool IsFinal
+        {
+            get
+            {
+                return (this.nSequence == uint.MaxValue);
+            }
+        }
+
+        public TxInfo Clone()
+        {
+            TxInfo txinf = BitcoinSerializableExtensions.Clone(this);
+            txinf.WitScript = (this.witScript ?? WitScript.Empty).Clone();
+            return txinf;
+        }
+
+        public static TxInfo CreateCoinbase(int height)
+        {
+            var txinf = new TxInfo();
+            txinf.ScriptSig = new Script(Op.GetPushOp(height)) + OpcodeType.OP_0;
+            return txinf;
+        }
+
+        public override string ToString()
+        {
+            return this.PrevObj.ToString();
+        }
+    }
+
+
     public class TxIn : IBitcoinSerializable
     {
         public TxIn()
@@ -890,6 +1024,96 @@ namespace NBitcoin
         }
     }
 
+    public class IndexedTxInfo
+    {
+        public TxInfo TxInfo
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// The index of this TxIn in its transaction
+        /// </summary>
+        public uint Index
+        {
+            get;
+            set;
+        }
+
+        public ObjPoint PrevObj
+        {
+            get
+            {
+                return this.TxInfo.PrevObj;
+            }
+            set
+            {
+                this.TxInfo.PrevObj = value;
+            }
+        }
+
+        public Script ScriptSig
+        {
+            get
+            {
+                return this.TxInfo.ScriptSig;
+            }
+            set
+            {
+                this.TxInfo.ScriptSig = value;
+            }
+        }
+
+        public Transaction Transaction
+        {
+            get;
+            set;
+        }
+
+        public bool VerifyScript(Network network, Script scriptPubKey, ScriptVerify scriptVerify = ScriptVerify.Standard)
+        {
+            return VerifyScript(network, scriptPubKey, scriptVerify, out ScriptError unused);
+        }
+        public bool VerifyScript(Network network, Script scriptPubKey, out ScriptError error)
+        {
+            return Script.VerifyScript(network, scriptPubKey, this.Transaction, (int)this.Index, null, out error);
+        }
+        public bool VerifyScript(Network network, Script scriptPubKey, ScriptVerify scriptVerify, out ScriptError error)
+        {
+            return Script.VerifyScript(network, scriptPubKey, this.Transaction, (int)this.Index, null, scriptVerify, SigHash.Undefined, out error);
+        }
+        public bool VerifyScript(Network network, Script scriptPubKey, Money value, ScriptVerify scriptVerify, out ScriptError error)
+        {
+            return Script.VerifyScript(network, scriptPubKey, this.Transaction, (int)this.Index, value, scriptVerify, SigHash.Undefined, out error);
+        }
+
+        public bool VerifyScript(Network network, ICoin coin, ScriptVerify scriptVerify = ScriptVerify.Standard)
+        {
+            return VerifyScript(network, coin, scriptVerify, out ScriptError unused);
+        }
+
+        public bool VerifyScript(Network network, ICoin coin, ScriptVerify scriptVerify, out ScriptError error)
+        {
+            return Script.VerifyScript(network, coin.TxOut.ScriptPubKey, this.Transaction, (int)this.Index, coin.TxOut.Value, scriptVerify, SigHash.Undefined, out error);
+        }
+        public bool VerifyScript(Network network, ICoin coin, out ScriptError error)
+        {
+            return VerifyScript(network, coin, ScriptVerify.Standard, out error);
+        }
+
+        public TransactionSignature Sign(Network network, Key key, ICoin coin, SigHash sigHash)
+        {
+            uint256 hash = GetSignatureHash(network, coin, sigHash);
+            return key.Sign(hash, sigHash);
+        }
+
+        public uint256 GetSignatureHash(Network network, ICoin coin, SigHash sigHash = SigHash.All)
+        {
+            return Script.SignatureHash(network, coin.GetScriptCode(network), this.Transaction, (int)this.Index, sigHash, coin.TxOut.Value, coin.GetHashVersion(network));
+        }
+    }
+
     public class IndexedTxIn
     {
         public TxIn TxIn
@@ -1021,6 +1245,42 @@ namespace NBitcoin
             return this.Select((r, i) => new IndexedTxIn()
             {
                 TxIn = r,
+                Index = (uint)i,
+                Transaction = this.Transaction
+            });
+        }
+    }
+
+    public class TxInfoList : UnsignedList<TxInfo>
+    {
+        public TxInfoList()
+        {
+
+        }
+        public TxInfoList(Transaction parent)
+            : base(parent)
+        {
+
+        }
+
+        public TxInfo this[ObjPoint outpoint]
+        {
+            get
+            {
+                return this[outpoint.N];
+            }
+            set
+            {
+                this[outpoint.N] = value;
+            }
+        }
+
+        public IEnumerable<IndexedTxInfo> AsIndexedInputs()
+        {
+            // We want i as the index of txInfo in Intputs[], not index in enumerable after where filter
+            return this.Select((r, i) => new IndexedTxInfo()
+            {
+                TxInfo = r,
                 Index = (uint)i,
                 Transaction = this.Transaction
             });
@@ -1487,13 +1747,16 @@ namespace NBitcoin
 
         private TxInList vin;
         private TxOutList vout;
+        private TxInfoList vinfo;
         private TxObjList vobj;
+
         private LockTime nLockTime;
 
         public Transaction()
         {
             this.vin = new TxInList(this);
             this.vout = new TxOutList(this);
+            this.vinfo = new TxInfoList(this);
             this.vobj = new TxObjList(this);
         }
 
@@ -1529,6 +1792,21 @@ namespace NBitcoin
             get
             {
                 return this.vout;
+            }
+        }
+
+        public TxInfoList Infos
+        {
+            get
+            {
+                return this.vinfo;
+            }
+        }
+        public TxObjList Objects
+        {
+            get
+            {
+                return this.vobj;
             }
         }
 
@@ -1782,6 +2060,14 @@ namespace NBitcoin
             return @out;
         }
 
+        public TxObj AddObject(Money money, IDestination destination)
+        {
+            return AddObject(new TxObj(money, destination));
+        }
+        public TxObj AddObject(Money money, Script scriptPubKey)
+        {
+            return AddObject(new TxObj(money, scriptPubKey));
+        }
         public TxObj AddObject(TxObj @obj)
         {
             this.vobj.Add(@obj);
@@ -1791,6 +2077,12 @@ namespace NBitcoin
         public TxIn AddInput(TxIn @in)
         {
             this.vin.Add(@in);
+            return @in;
+        }
+
+        public TxInfo AddInfo(TxInfo @in)
+        {
+            this.vinfo.Add(@in);
             return @in;
         }
 
@@ -1819,6 +2111,17 @@ namespace NBitcoin
             @in.PrevOut.Hash = prevTx.GetHash();
             @in.PrevOut.N = (uint)outIndex;
             AddInput(@in);
+            return @in;
+        }
+
+        public TxInfo AddInfo(Transaction prevTx, int objIndex)
+        {
+            if (objIndex >= prevTx.Objects.Count)
+                throw new InvalidOperationException("Object " + objIndex + " is not present in the prevTx");
+            var @in = new TxInfo();
+            @in.PrevObj.Hash = prevTx.GetHash();
+            @in.PrevObj.N = (uint)objIndex;
+            AddInfo(@in);
             return @in;
         }
 

@@ -265,6 +265,9 @@ addr: RyMBTkqrotubSuY8B3HtSBnkeUUA4PxP3f
                         });
              */
             Console.WriteLine(payment);
+
+            /*
+
             payment.Inputs[0].ScriptSig = sender.GetAddress().ScriptPubKey;
             //also OK:
             //payment.Inputs[0].ScriptSig =
@@ -276,7 +279,6 @@ addr: RyMBTkqrotubSuY8B3HtSBnkeUUA4PxP3f
             // new RPCClient(new NetworkCredential("usuaraw", "SupEr3421aw"), "127.0.0.1", net).SendRawTransaction(payment);
             // using (var node = Node.Connect(net, "54.152.50.251", ProtocolVersion.PROTOCOL_VERSION, true, default(CancellationToken))) //Connect to the node
 
-            /*
             if (pay)
                 using (var node = TransactionModel.Connect(net, "127.0.0.1", ProtocolVersion.PROTOCOL_VERSION, true, default(CancellationToken))) //Connect to the node
                 {
